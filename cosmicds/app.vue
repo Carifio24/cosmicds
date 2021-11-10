@@ -125,7 +125,7 @@
                             <!-- WWT GALAXY PICKER as Jupyter Widget -- v-lazy loads when visible -->
                             <v-lazy>
                               <jupyter-widget
-                                :widget="viewers.wwt_viewer"
+                                :widget="layouts.wwt"
                               ></jupyter-widget>
                             </v-lazy>
                           </div>
