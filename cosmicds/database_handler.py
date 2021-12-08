@@ -65,13 +65,9 @@ class DatabaseHandler:
 
     ## Hubble-specific methods
     def _student_has_galaxy(self, student_id, galaxy_id):
-        self.student_collection.aggregate([
-            { "$match": { "student_id": student_id } },
-            { "$unwind": "$stories" },
-            { "$match": {"stories.name": "hubble"} },
-            { "$unwind": "$stories.measurements" },
-            { "$match" : { "stories.measurements.galaxy_id": galaxy_id } }
-        ])
+        self.student_collection.find_one(
+                { "student_id": student_id, "stories": { "$elemMatch" : { "name" : "hubble", "measurements.galaxy_id": galaxy_id } } }
+        )
 
     def _add_galaxy_data_for_student(self, student_id, galaxy_data):
         self.student_collection.find_one_and_update(
@@ -85,7 +81,7 @@ class DatabaseHandler:
         self._student_collection.find_one_and_update(
             { "student_id": student_id },
             { "$set": use_for_set },
-            array_filters=[{"story.name":"hubble"}, {"meas.galaxy_id" : galaxy_id }]
+            array_filters=[{"story.name":"hubble"}, {"meas.galaxy_id" : galaxy_id}]
         )
         
     def log_hubble_measurement_for_student(self, student_id, galaxy_data):
