@@ -21,7 +21,6 @@ class SelectionTool(v.VueTemplate):
     template = load_template("selection_tool.vue", __file__, traitlet=True).tag(sync=True)
     widget = Instance(DOMWidget, allow_none=True).tag(sync=True, **widget_serialization)
     current_galaxy = Dict().tag(sync=True)
-    candidate_galaxy = Dict().tag(sync=True)
     selected_count = Int().tag(sync=True)
     dialog = Bool(False).tag(sync=True)
     flagged = Bool(False).tag(sync=True)
@@ -49,11 +48,11 @@ class SelectionTool(v.VueTemplate):
         self.selected_data = DataFrame()
         self.selected_layer = None
         self.current_galaxy = {}
-        self.candidate_galaxy = {}
         self._on_galaxy_selected = None
 
         def wwt_cb(wwt, updated):
-            if 'most_recent_source' not in updated or self.selected_data.shape[0] >= self.gals_max:
+            size = self.selected_data.shape[0]
+            if 'most_recent_source' not in updated or size >= self.gals_max:
                 return
 
             source = wwt.most_recent_source
@@ -64,11 +63,10 @@ class SelectionTool(v.VueTemplate):
             fov = min(wwt.get_fov(), GALAXY_FOV)
             self.go_to_location(galaxy["ra"], galaxy["decl"], fov=fov)
             self.current_galaxy = galaxy
-            self.candidate_galaxy = galaxy
-            gal_names = [k for k in self.selected_data["name"]]
+            gal_names = [k for k in self.selected_data.get("name", [])]
             if self.current_galaxy["name"] in gal_names:
-                self.candidate_galaxy = {}
-            self.state.gal_selected = True
+                self.current_galaxy = {}
+            self.state.gal_selected = len(self.current_galaxy) > 0
 
         self.widget.set_selection_change_callback(wwt_cb)
 
@@ -99,12 +97,10 @@ class SelectionTool(v.VueTemplate):
     def vue_select_current_galaxy(self, _args=None):
         self.select_galaxy(self.current_galaxy)
         self.current_galaxy = {}
-        self.candidate_galaxy = {}
 
     def vue_reset(self, _args=None):
         self.widget.center_on_coordinates(self.START_COORDINATES, fov=FULL_FOV, instant=True)
         self.current_galaxy = {}
-        self.candidate_galaxy = {}
         self.state.gal_selected = False
 
     def go_to_location(self, ra, dec, fov=GALAXY_FOV):
