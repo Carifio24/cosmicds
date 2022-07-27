@@ -27,7 +27,8 @@ def cds_viewer(viewer_class, name=None, viewer_tools=None, label=None, state_cls
             for tool_id in viewer_tools:
                 mode_cls = viewer_tool.members[tool_id]
                 mode = mode_cls(self)
-                self.toolbar.add_tool(mode)
+                self.toolbar.add_tool(mode, refresh_template=False)
+            self.toolbar.refresh_template()
 
         def ignore(self, condition):
             self.ignore_conditions.append(condition)

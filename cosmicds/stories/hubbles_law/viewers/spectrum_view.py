@@ -1,3 +1,4 @@
+from cosmicds.viewers.cds_viewers import CDSScatterView
 from glue.viewers.scatter.state import ScatterViewerState
 from glue_jupyter.bqplot.scatter import BqplotScatterView, BqplotScatterLayerArtist
 from bqplot.marks import Lines
@@ -35,13 +36,20 @@ class SpectrumViewLayerArtist(BqplotScatterLayerArtist):
         self.scatter = Lines(scales=self.scales, x=[0,1], y=[0,1], marker=None)
         self.view.figure.marks = list(filter(lambda x: x is not old_scatter, self.view.figure.marks)) + [self.scatter]
         
-class SpectrumView(BqplotScatterView):
+class SpectrumView(CDSScatterView):
 
     _data_artist_cls = SpectrumViewLayerArtist
     _subset_artist_cls = SpectrumViewLayerArtist
 
     inherit_tools = False
-    tools = ['bqplot:home', 'hubble:wavezoom', 'hubble:restwave', 'hubble:specflag', 'cds:info']
+    tools = [
+        'bqplot:home',
+        'hubble:wavezoom',
+        'hubble:restwave',
+        'hubble:specflag',
+        'cds:info',
+        'cds:layervisibility'
+    ]
     _state_cls = SpectrumViewerState
     show_line = Bool(True)
     LABEL = "Spectrum Viewer"

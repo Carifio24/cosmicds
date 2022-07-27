@@ -1,6 +1,5 @@
-import os
-
 from cosmicds.utils import load_template
+from ipyvue import register_component_from_string
 from ipyvuetify import VuetifyTemplate
 from traitlets import HasTraits, Dict, Instance, Unicode, Any, observe
 from glue.viewers.common.tool import Tool, CheckableTool
@@ -26,13 +25,14 @@ class Toolbar(VuetifyTemplate):
     active_tool_id = Any().tag(sync=True)
 
     def __init__(self, viewer, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.components = {}
         self.tools = {}
         if viewer._default_mouse_mode_cls is not None:
             self._default_mouse_mode = viewer._default_mouse_mode_cls(viewer)
             self._default_mouse_mode.activate()
         else:
             self._default_mouse_mode = None
-        super().__init__()
 
     @observe('active_tool_id')
     def _on_change_v_model(self, change):
@@ -71,15 +71,30 @@ class Toolbar(VuetifyTemplate):
         return icon
 
     def update_tools_data(self, tool, data={}):
+        template = isinstance(tool, VuetifyTemplate)
+        comp_name = self.add_tool_component(tool) if template else None
         self.tools_data = {
             **self.tools_data, 
             tool.tool_id: {
                 "tooltip" : tool.tool_tip,
                 "icon": Toolbar.get_icon(tool),
                 "disabled": False,
+                "component_name": comp_name,
                 **data
             }
         }
+
+    def add_tool_component(self, tool):
+        try:
+            current_components = { k : v for k, v in self.components.items() }
+            comp_name = "c-" + tool.tool_id.replace(":", "-")
+            register_component_from_string(name=comp_name, value=self.template)
+            current_components.update({comp_name: tool})
+            self.components = current_components
+            self.refresh_template()
+            return comp_name
+        except:
+            return None
 
     def refresh_tools_data(self, change):
         self.update_tools_data(change["owner"])
@@ -91,7 +106,13 @@ class Toolbar(VuetifyTemplate):
     def is_tool_enabled(self, tool_id):
         return not self.tools_data[tool_id]["disabled"]
 
-    def add_tool(self, tool, data={}):
+    def refresh_template(self):
+        try:
+            self.template = load_template("toolbar.vue", __file__, traitlet=False)
+        except:
+            pass
+
+    def add_tool(self, tool, data={}, refresh_template=True):
         self.tools[tool.tool_id] = tool
         self.update_tools_data(tool, data)
 
@@ -99,4 +120,6 @@ class Toolbar(VuetifyTemplate):
             for trait in self._TOOL_TRAITS:
                 if trait in tool.traits():
                     tool.observe(self.refresh_tools_data, names=[trait])
-
+        
+        if refresh_template and isinstance(tool, VuetifyTemplate):
+            self.refresh_template()
