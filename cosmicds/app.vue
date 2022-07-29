@@ -53,7 +53,7 @@
         <span
           class="white--text mr-2"
         >
-          <strong>## points</strong>
+          <strong>{{ `${totalScore} points` }}</strong>
         </span>
         <v-icon
           color="green"
@@ -459,8 +459,7 @@ export default {
     //this.onLoadStoryState(this.story_state);
 
     document.addEventListener("mc-score", (e) => {
-      const { tag, score } = e.detail;
-      app.$data.story_state.mc_scoring[tag] = score;
+      app.update_mc_score(e.detail);
       app.update_state();
     });
   },
@@ -478,7 +477,8 @@ export default {
   },
   computed: {
     totalScore() {
-      return Object.values(this.$data.story_state.mc_scoring).reduce((a, b) => a + b, 0);
+      console.log(this.story_state.mc_scoring);
+      return Object.values(this.story_state.mc_scoring).reduce((a, b) => a + b, 0);
     }
   }
 };

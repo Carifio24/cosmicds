@@ -123,6 +123,9 @@ class Application(VuetifyTemplate, HubListener):
     def vue_write_to_database(self, _args=None):
         self._on_write_to_database(None)
 
+    def vue_update_mc_score(self, args):
+        self.story_state.mc_scoring[args["tag"]] = args["score"]
+
     def vue_update_state(self, _args=None):
         trait = self.traits()["story_state"]
         trait.on_state_change(obj=self)
