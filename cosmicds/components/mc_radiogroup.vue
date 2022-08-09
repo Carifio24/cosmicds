@@ -71,7 +71,43 @@ module.exports = {
     },
     radioOptions: Array,
     scoreTag: String,
-    selectedCallback: Function
+    selectedCallback: Function,
+    stage: {
+      type: [Object, null],
+      default: null
+    },
+    story: {
+      type: [Object, null],
+      default: null
+    }
+  },
+  mounted() {
+    if (!this.scoreTag) {
+      return;
+    }
+
+    if (this.story !== null && this.stage !== null) {
+      this.storyState = this.story;
+      this.stageState = this.stage;
+    } else {
+      let comp = this.$parent;
+      while (comp) {
+        if (comp.$data.stage_state) {
+          this.stageState = this.stage || comp.$data.stage_state;
+        }
+        if (comp.$data.story_state) {
+          this.storyState = this.story || comp.$data.story_state;
+          break;
+        }
+        comp = comp.$parent;
+      }
+    }
+
+    if (this.storyState && this.scoreTag in this.storyState) {
+      const data = this.storyState.mc_scoring[this.scoreTag];
+      this.tries = data.tries - 1; // selectChoice adds a try
+      this.selectChoice(data.choice);
+    }
   },
   data: function () {
     return {
@@ -82,7 +118,8 @@ module.exports = {
       complete: false,
       feedbackIndex: null,
       tries: 0,
-      score: 0
+      score: 0,
+      storyState: null
     };
   },
   methods: {
@@ -92,18 +129,18 @@ module.exports = {
       const correct = this.correctAnswers.includes(index);
       if (correct) {
         this.complete = true;
-        if (this.scoring) {
-          this.score = this.getScore(this.tries);
-          if (this.scoreTag !== undefined) {
-            document.dispatchEvent(
-              new CustomEvent("mc-score", {
-                detail: {
-                  tag: this.scoreTag,
-                  score: this.score
-                }
-              })
-            );
-          }
+        this.score = this.scoring ? this.getScore(this.tries) : null;
+        if (this.scoreTag !== undefined & this.storyState !== null) {
+          document.dispatchEvent(
+            new CustomEvent("mc-score", {
+              detail: {
+                tag: this.scoreTag,
+                score: this.score,
+                choice: this.feedbackIndex,
+                tries: this.tries,
+              }
+            })
+          );
         }
       }
       if (this.selectedCallback !== undefined) {
