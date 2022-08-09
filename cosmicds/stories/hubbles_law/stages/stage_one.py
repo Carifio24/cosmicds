@@ -292,8 +292,8 @@ class StageOne(HubbleStage):
         restwave_tool = spectrum_viewer.toolbar.tools["hubble:restwave"]
         add_callback(restwave_tool, 'lambda_used', self._on_lambda_used)
         add_callback(restwave_tool, 'lambda_on', self._on_lambda_on)
-        for tool_id in ["hubble:restwave", "hubble:wavezoom", "bqplot:home"]:
-            spectrum_viewer.toolbar.set_tool_enabled(tool_id, False)
+        # for tool_id in ["hubble:restwave", "hubble:wavezoom", "bqplot:home"]:
+        #     spectrum_viewer.toolbar.set_tool_enabled(tool_id, False)
 
     def _on_marker_update(self, old, new):
         if not self.trigger_marker_update_cb:
@@ -574,3 +574,7 @@ class StageOne(HubbleStage):
             tool = self.galaxy_table.get_tool("update-velocities")
             tool["disabled"] = False
             self.galaxy_table.update_tool(tool)
+
+    def vue_set_spec_tick_spacing(self, nticks):
+        viewer = self.get_viewer("spectrum_viewer")
+        viewer.update_nticks(nticks)

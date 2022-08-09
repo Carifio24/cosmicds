@@ -147,7 +147,10 @@
               :class="stage_state.spec_highlights.includes(stage_state.marker) ? 'pa-1 my-n1' : 'pa-0'"
               outlined
             >
-              <jupyter-widget :widget="viewers.spectrum_viewer"/>
+              <jupyter-widget
+                id="spectrum-viewer"
+                :widget="viewers.spectrum_viewer"
+                />
             </v-card>
           </v-col>
         </v-row>
@@ -199,6 +202,30 @@
 
 <script>
 module.exports = {
+  mounted() {
+    const config = { childList: true, subtree: true };
+    const onMutation = (mutationList, observer) => {
+      for (const mutation of mutationList) {
+        if (mutation.type === 'childList') {
+          const target = mutation.target;
+          if (target.id === 'spectrum-viewer') {
+            const resizeObserver = new ResizeObserver((entries) => {
+              for (const entry of entries) {
+                const pixelSize = entry.devicePixelContentBoxSize[0];
+                const width = pixelSize.inlineSize;
+                const nticks = Math.floor(width / 125);
+                this.set_spec_tick_spacing(nticks);
+                observer.disconnect();
+              }
+            });
+            resizeObserver.observe(target, { box: 'device-pixel-content-box' });
+          }
+        }
+      }
+    }
+    const observer = new MutationObserver(onMutation);
+    observer.observe(this.$el, config);
+  },
   methods: {
     scrollIntoView: function(entries, observer, isIntersecting) {
       if (isIntersecting) {

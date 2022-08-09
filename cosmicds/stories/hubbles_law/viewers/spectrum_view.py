@@ -1,3 +1,5 @@
+from math import ceil, floor
+
 from glue.viewers.scatter.state import ScatterViewerState
 from glue_jupyter.bqplot.scatter import BqplotScatterView, BqplotScatterLayerArtist
 from bqplot.marks import Lines
@@ -5,6 +7,7 @@ from bqplot import Label
 from echo import add_callback, delay_callback, CallbackProperty
 from glue.config import viewer_tool
 from glue.viewers.common.utils import get_viewer_tools
+from numpy import linspace
 from traitlets import Bool
 
 from cosmicds.components.toolbar import Toolbar
@@ -62,6 +65,9 @@ class SpectrumView(BqplotScatterView):
         self.figure_size_x = 0
         self.figure_size_y = 230
         self.element = None
+        self.nticks = 7
+
+        self.scale_x.observe(self._on_xaxis_change, names=['min', 'max'])
         
         self.user_line = Lines(
             x=[0, 0], 
@@ -200,6 +206,32 @@ class SpectrumView(BqplotScatterView):
             ymin = self.state.y_min
             self.state.resolution_y *= (new - ymin + 20) / (old - ymin + 20)
         self._update_y_locations()
+
+    def _on_xaxis_change(self, change):
+        args = { 'x' + change["name"] : change["new"] }
+        self.update_ticks(**args)
+
+    def update_nticks(self, nticks):
+        if nticks == self.nticks:
+            return
+        self.nticks = nticks
+        self.update_ticks()
+
+    def update_ticks(self, xmin=None, xmax=None):
+        tick_spacings = [2000, 1500, 1000, 500, 250, 100, 50]
+        xmin = xmin or self.state.x_min
+        xmax = xmax or self.state.x_max
+        x_range = xmax - xmin
+        frac = int(x_range / self.nticks)
+        spacing = next((t for t in tick_spacings if frac > t), 50)
+        self.set_tick_spacing(spacing)
+
+    def set_tick_spacing(self, spacing):
+        xmin, xmax = self.state.x_min, self.state.x_max
+        tmin = ceil(xmin / spacing) * spacing
+        tmax = floor(xmax / spacing) * spacing
+        n = int((tmax - tmin) / spacing) + 1
+        self.axis_x.tick_values = list(linspace(tmin, tmax, n))
 
     def _update_y_locations(self, resolution=None):
         scale = self.scales['y']
