@@ -472,6 +472,7 @@ export default {
             new CustomEvent("mc-initialize-response", {
               detail: {
                 ...data,
+                found: true,
                 tag: tag
               }
             })
@@ -479,6 +480,16 @@ export default {
           return;
         }
       }
+
+      // If there isn't a score for this MC, let it know
+      document.dispatchEvent(
+          new CustomEvent("mc-initialize-response", {
+            detail: {
+              found: false,
+              tag: tag
+            }
+          })
+      );
     });
 
   },

@@ -74,13 +74,17 @@ module.exports = {
     selectedCallback: Function
   },
   created() {
-    this.onInitResponse = 
-    document.addEventListener("mc-initialize-response", (e) => {
+    if (!this.scoreTag) { return; }
+    this.onInitResponse = (e) => {
       const data = e.detail;
       if (data.tag !== this.scoreTag) { return; }
-      this.tries = data.tries - 1; // selectChoice adds a try
-      this.selectChoice(data.choice, false); // no need to tell the state what it just told us
-    });
+      if (data.found) {
+        this.tries = data.tries - 1; // selectChoice adds a try
+        this.selectChoice(data.choice, false); // no need to tell the state what it just told us
+      }
+      document.removeEventListener("mc-initialize-response", this.onInitResponse);
+    };
+    document.addEventListener("mc-initialize-response", this.onInitResponse);
     document.dispatchEvent(
       new CustomEvent("mc-initialize", {
         detail: {

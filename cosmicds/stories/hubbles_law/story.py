@@ -52,6 +52,11 @@ class HubblesLaw(Story):
                     "score": 8,
                     "choice": 1,
                     "tries": 2
+                },
+                "galaxy-motion": {
+                    "choice": 1,
+                    "score": 8,
+                    "tries": 2
                 }
             }
         }
