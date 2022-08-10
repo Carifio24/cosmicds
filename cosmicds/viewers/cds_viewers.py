@@ -1,9 +1,12 @@
 # This file is for viewers that don't need anything beyond
 # the standard CDS updating (the new toolbar, etc.)
 
+from math import ceil, floor
+
 from glue.config import viewer_tool
 from glue_jupyter.bqplot.scatter import BqplotScatterView
 from glue_jupyter.bqplot.histogram import BqplotHistogramView
+from numpy import linspace
 
 from cosmicds.components.toolbar import Toolbar
 
@@ -20,6 +23,8 @@ def cds_viewer(viewer_class, name=None, viewer_tools=None, label=None, state_cls
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.ignore_conditions = []
+            self.nticks = 7
+            self.scale_x.observe(self._on_xaxis_change, names=['min', 'max'])
 
         def initialize_toolbar(self):
             self.toolbar = Toolbar(self)
@@ -41,6 +46,32 @@ def cds_viewer(viewer_class, name=None, viewer_tools=None, label=None, state_cls
             if any(condition(subset) for condition in self.ignore_conditions):
                 return False
             return super().add_subset(subset)
+
+        def _on_xaxis_change(self, change):
+            args = { 'x' + change["name"] : change["new"] }
+            self.update_ticks(**args)
+
+        def update_nticks(self, nticks):
+            if nticks == self.nticks:
+                return
+            self.nticks = nticks
+            self.update_ticks()
+
+        def update_ticks(self, xmin=None, xmax=None):
+            tick_spacings = [2000, 1500, 1000, 500, 250, 100, 50]
+            xmin = xmin or self.state.x_min
+            xmax = xmax or self.state.x_max
+            x_range = xmax - xmin
+            frac = int(x_range / self.nticks)
+            spacing = next((t for t in tick_spacings if frac > t), 50)
+            self.set_tick_spacing(spacing)
+
+        def set_tick_spacing(self, spacing):
+            xmin, xmax = self.state.x_min, self.state.x_max
+            tmin = ceil(xmin / spacing) * spacing
+            tmax = floor(xmax / spacing) * spacing
+            n = int((tmax - tmin) / spacing) + 1
+            self.axis_x.tick_values = list(linspace(tmin, tmax, n))
         
     return CDSViewer
 

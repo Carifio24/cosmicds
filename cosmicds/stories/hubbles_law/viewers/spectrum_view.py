@@ -1,7 +1,7 @@
 from math import ceil, floor
 
 from glue.viewers.scatter.state import ScatterViewerState
-from glue_jupyter.bqplot.scatter import BqplotScatterView, BqplotScatterLayerArtist
+from glue_jupyter.bqplot.scatter import BqplotScatterLayerArtist
 from bqplot.marks import Lines
 from bqplot import Label
 from echo import add_callback, delay_callback, CallbackProperty
@@ -12,6 +12,7 @@ from traitlets import Bool
 
 from cosmicds.components.toolbar import Toolbar
 from cosmicds.stories.hubbles_law.utils import H_ALPHA_REST_LAMBDA, MG_REST_LAMBDA
+from cosmicds.viewers.cds_viewers import CDSScatterView
 
 __all__ = ['SpectrumView', 'SpectrumViewLayerArtist', 'SpectrumViewerState']
 
@@ -45,7 +46,7 @@ class SpectrumViewLayerArtist(BqplotScatterLayerArtist):
         self.scatter = Lines(scales=self.scales, x=[0,1], y=[0,1], marker=None, colors=['#507FB6'], stroke_width=1.8)
         self.view.figure.marks = list(filter(lambda x: x is not old_scatter, self.view.figure.marks)) + [self.scatter]
         
-class SpectrumView(BqplotScatterView):
+class SpectrumView(CDSScatterView):
 
     _data_artist_cls = SpectrumViewLayerArtist
     _subset_artist_cls = SpectrumViewLayerArtist
@@ -206,32 +207,6 @@ class SpectrumView(BqplotScatterView):
             ymin = self.state.y_min
             self.state.resolution_y *= (new - ymin + 20) / (old - ymin + 20)
         self._update_y_locations()
-
-    def _on_xaxis_change(self, change):
-        args = { 'x' + change["name"] : change["new"] }
-        self.update_ticks(**args)
-
-    def update_nticks(self, nticks):
-        if nticks == self.nticks:
-            return
-        self.nticks = nticks
-        self.update_ticks()
-
-    def update_ticks(self, xmin=None, xmax=None):
-        tick_spacings = [2000, 1500, 1000, 500, 250, 100, 50]
-        xmin = xmin or self.state.x_min
-        xmax = xmax or self.state.x_max
-        x_range = xmax - xmin
-        frac = int(x_range / self.nticks)
-        spacing = next((t for t in tick_spacings if frac > t), 50)
-        self.set_tick_spacing(spacing)
-
-    def set_tick_spacing(self, spacing):
-        xmin, xmax = self.state.x_min, self.state.x_max
-        tmin = ceil(xmin / spacing) * spacing
-        tmax = floor(xmax / spacing) * spacing
-        n = int((tmax - tmin) / spacing) + 1
-        self.axis_x.tick_values = list(linspace(tmin, tmax, n))
 
     def _update_y_locations(self, resolution=None):
         scale = self.scales['y']
