@@ -53,7 +53,7 @@
         <span
           class="white--text mr-2"
         >
-          <strong>{{ `${totalScore} points` }}</strong>
+          <strong>{{ `${totalScore} ${totalScore == 1 ? 'point' : 'points'}` }}</strong>
         </span>
         <v-icon
           color="green"
@@ -462,6 +462,25 @@ export default {
       app.update_mc_score(e.detail);
       app.update_state();
     });
+
+    document.addEventListener("mc-initialize", (e) => {
+      const tag = e.detail.tag;
+      for (const values of Object.values(this.story_state.mc_scoring)) {
+        if (tag in values) {
+          const data = values[tag];
+          document.dispatchEvent(
+            new CustomEvent("mc-initialize-response", {
+              detail: {
+                ...data,
+                tag: tag
+              }
+            })
+          );
+          return;
+        }
+      }
+    });
+
   },
   methods: {
     getCurrentStage: function () {
@@ -477,8 +496,14 @@ export default {
   },
   computed: {
     totalScore() {
-      console.log(this.story_state.mc_scoring);
-      return Object.values(this.story_state.mc_scoring).reduce((a, b) => a + b, 0);
+      if (this.story_state.need_score_update) {
+        this.story_state.total_score = Object.values(this.story_state.mc_scoring)
+          .reduce((sum, stage_results) => 
+            sum + Object.values(stage_results).reduce((a, b) => a + b.score, 0)
+          , 0);
+        this.need_score_update = false;
+      }
+      return this.story_state.total_score;
     }
   }
 };

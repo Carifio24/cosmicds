@@ -162,7 +162,6 @@
           >
             <!-- REFLECTION Dialog -->
             <reflect-velocity-windows
-              v-if="stage_state.obswaves_total >= 5"
               button-text="reflect"
               close-text="submit"
               @submit="
@@ -172,13 +171,13 @@
             >
             </reflect-velocity-windows>
             <!-- Placeholder for Reflection button -->
-            <v-btn
+            <!-- <v-btn
               v-if="stage_state.obswaves_total < 5"
               disabled
               block
               color="info"
               elevation="2"
-            >
+            > -->
               <v-spacer></v-spacer>
               reflect
               <v-spacer></v-spacer>

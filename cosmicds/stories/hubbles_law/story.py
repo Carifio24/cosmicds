@@ -46,6 +46,16 @@ class HubblesLaw(Story):
 
         self._set_theme()
 
+        self.mc_scoring = {
+            1: {
+                "wavelength-comparison": {
+                    "score": 8,
+                    "choice": 1,
+                    "tries": 2
+                }
+            }
+        }
+
         # Load data needed for Hubble's Law
         data_dir = Path(__file__).parent / "data"
         output_dir = data_dir / "hubble_simulation" / "output"
@@ -316,7 +326,10 @@ class HubblesLaw(Story):
 
     def fetch_class_data(self):
         def check_update(measurements):
-            last_modified = max([datetime.fromisoformat(x["last_modified"][:-1]) for x in measurements])
+            dates = [datetime.fromisoformat(x["last_modified"][:-1]) for x in measurements]
+            if len(dates) == 0:
+                return False
+            last_modified = max(dates)
             need_update = self.class_last_modified is None or last_modified > self.class_last_modified
             if need_update:
                 self.class_last_modified = last_modified

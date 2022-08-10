@@ -34,6 +34,8 @@ class Story(CDSState, HubMixin):
     student_user = CallbackProperty()
     classroom = CallbackProperty()
     mc_scoring = DictCallbackProperty()
+    total_score = CallbackProperty(0)
+    need_score_update = CallbackProperty(True)
 
     def __init__(self, session, *args, **kwargs):
         super().__init__(*args, **kwargs)

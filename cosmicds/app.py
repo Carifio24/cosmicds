@@ -43,13 +43,14 @@ class Application(VuetifyTemplate, HubListener):
         self.app_state.update_db = kwargs.get("update_db", True)
         self.app_state.show_team_interface = kwargs.get("show_team_interface", True)
         
-        # # For testing purposes, we create a new dummy student on each startup
-        # if self.app_state.update_db:
-        #     response = requests.get(f"{API_URL}/new-dummy-student").json()
-        #     self.app_state.student = response["student"]
-
+        # For testing purposes, we can create a new dummy student on each startup
+        new_dummy_student = kwargs.get("new_dummy_student", False)
+        if new_dummy_student:
+            response = requests.get(f"{API_URL}/new-dummy-student").json()
+            self.app_state.student = response["student"]
+        else:
+            self.app_state.student["id"] = kwargs.get("student_id", 0)
         self.app_state.classroom["id"] = kwargs.get("class_id", 0)
-        self.app_state.student["id"] = kwargs.get("student_id", 0)
 
         self._application_handler = JupyterApplication()
         self.story_state = story_registry.setup_story(story, self.session, self.app_state)
@@ -124,7 +125,15 @@ class Application(VuetifyTemplate, HubListener):
         self._on_write_to_database(None)
 
     def vue_update_mc_score(self, args):
-        self.story_state.mc_scoring[args["tag"]] = args["score"]
+        index = self.story_state.stage_index
+        if index not in self.story_state.mc_scoring:
+            self.story_state.mc_scoring[index] = {}
+        self.story_state.mc_scoring[index][args["tag"]] = {
+            "score": args["score"],
+            "choice": args["choice"],
+            "tries": args["tries"]
+        }
+        self.story_state.need_score_update = True
 
     def vue_update_state(self, _args=None):
         trait = self.traits()["story_state"]
