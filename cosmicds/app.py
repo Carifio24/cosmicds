@@ -71,6 +71,8 @@ class Application(VuetifyTemplate, HubListener):
                 sid = kwargs.get("student_id", 0)
                 self.app_state.student["id"] = sid
                 self.student_id = sid
+                
+            db_init = bool(self.student_id)
             
         r = requests.get(f"{API_URL}/class-for-student-story/{self.student_id}/{story}")
         cls = r.json()["class"]
