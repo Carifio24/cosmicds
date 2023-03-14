@@ -258,6 +258,33 @@
 
 <script>
 export default {
+  created() {
+    document.addEventListener("mc-score", (e) => {
+      app.update_mc_score(e.detail);
+      app.update_state();
+    });
+
+    document.addEventListener('speech-settings-request', (e) => {
+      console.log("Got request; responding...");
+      console.log(JSON.stringify(this.app_state), 4);
+      document.dispatchEvent(new CustomEvent('speech-settings-response', {
+        detail: {
+          autoread: this.app_state.speech_autoread ?? false,
+          pitch: this.app_state.speech_pitch ?? 1,
+          rate: this.app_state.speech_rate ?? 1
+        }
+      }));
+    });
+    console.log("Event listener added");
+
+    document.addEventListener("fr-update", (e) => {
+      app.update_free_response(e.detail);
+      app.update_state();
+    });
+
+    document.addEventListener("mc-initialize", this.handleMCInitialization);
+    document.addEventListener("fr-initialize", this.handleFRInitialization);
+  },
   async mounted() {
 
     // We ultimately don't want to expose this
@@ -501,19 +528,6 @@ export default {
     });
     resizeObserver.observe(document.body);
     //this.onLoadStoryState(this.story_state);
-
-    document.addEventListener("mc-score", (e) => {
-      app.update_mc_score(e.detail);
-      app.update_state();
-    });
-
-    document.addEventListener("fr-update", (e) => {
-      app.update_free_response(e.detail);
-      app.update_state();
-    });
-
-    document.addEventListener("mc-initialize", this.handleMCInitialization);
-    document.addEventListener("fr-initialize", this.handleFRInitialization);
   },
   methods: {
     getCurrentStage: function () {
@@ -579,7 +593,18 @@ export default {
             }
           })
       );
-    }
+    },
+
+    jupyter_notifySpeechSettingsUpdated() {
+      console.log("Sending update");
+      document.dispatchEvent(new CustomEvent('speech-settings-update', {
+        detail: {
+          autoread: this.app_state.speech_autoread ?? false,
+          pitch: this.app_state.speech_pitch ?? 1,
+          rate: this.app_state.speech_rate ?? 1
+        }
+      }));
+    },
   }
 };
 </script>

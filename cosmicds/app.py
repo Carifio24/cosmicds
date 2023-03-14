@@ -211,14 +211,21 @@ class Application(VuetifyTemplate, HubListener):
         })
         print(response.text)
 
-    @debounce(2)
+    def _speech_settings_changed(self):
+        self.send({"method": "notifySpeechSettingsUpdated", "args": []})
+
+    @debounce(1)
     def _speech_rate_changed(self, rate):
+        self._speech_settings_changed()
         self._student_option_changed('speech_rate', rate)
 
-    @debounce(2)
+    @debounce(1)
     def _speech_pitch_changed(self, pitch):
+        self._speech_settings_changed()
         self._student_option_changed('speech_pitch', pitch)
 
-    @debounce(2)
+    @debounce(1)
     def _speech_autoread_changed(self, autoread):
+        self._speech_settings_changed()
+        print("Changed autoread", autoread)
         self._student_option_changed('speech_autoread', autoread)

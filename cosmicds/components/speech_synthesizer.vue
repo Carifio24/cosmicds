@@ -40,21 +40,57 @@ module.exports = {
   },
   data: function () {
     return {
+      hasAutospoken: false,
       utteranceSpeaking: false,
       speakingTimeoutID: null,
       intervalID: 0,
       rootElement: null,
       iconNameMap: {
         'cached': 'reset'
-      }
+      },
+      speechSettings: {
+        autoread: false,
+        pitch: 1,
+        rate: 1
+      },
+      responseHandler: null,
+      updateHandler: null
     };
   },
   mounted() {
+    this.responseHandler = (e) => {
+      console.log("Got response");
+      console.log(e.detail);
+      this.speechSettings = e.detail;
+      console.log(this.speechSettings);
+      if (!this.hasAutospoken) {
+        this.triggerAutospeak();
+      }
+      document.removeEventListener('speech-settings-response', this.responseHandler);
+      this.responseHandler = null;
+    };
+    document.addEventListener('speech-settings-response', this.responseHandler);
+    
+    this.updateHandler = (e) => {
+      console.log("Got update");
+      this.speechSettings = e.detail;
+    };
+    document.addEventListener('speech-settings-update', this.updateHandler);
+    console.log("About to dispatch event");
+    document.dispatchEvent(new CustomEvent('speech-settings-request'));
     console.log(this);
-    this.triggerAutospeak();
+    console.log(this.$root.$children[0].$children[0]);
+    if (!(this.speaking && window.speechSynthesis.speaking)) {
+      this.triggerAutospeak();
+    }
   },
   destroyed() {
     console.log("Destroying!");
+    if (this.responseHandler) {
+      document.removeEventListener('speech-settings-response', this.responseHandler);
+    }
+    document.removeEventListener('speech-settings-update', this.updateHandler);
+
     if (this.stopOnClose && this.speaking) {
       clearInterval(this.intervalID);
       window.speechSynthesis.cancel();
@@ -78,9 +114,11 @@ module.exports = {
   methods: {
 
     triggerAutospeak() {
-      const appComponent = this.$root.$children[0].$children[0];
-      if (appComponent.app_state.speech_autoread) {
-        this.$nextTick(() => this.speak(true));
+      if (this.speechSettings.autoread) {
+        this.$nextTick(() => {
+          this.hasAutospoken = true;
+          this.speak(true);
+        });
       }
     },
 
@@ -118,12 +156,11 @@ module.exports = {
       return clone.textContent.trim();
 
     },
-    makeUtterance(text, options) {
+    makeUtterance(text) {
       const utterance = new SpeechSynthesisUtterance(text);
 
-      options = options || this.getSpeechOptions();
-      Object.keys(options).forEach(key => {
-        utterance[key] = options[key];
+      Object.keys(this.speechSettings).forEach(key => {
+        utterance[key] = this.speechSettings[key];
       });
 
       // The interval is to work around this issue:
@@ -157,17 +194,6 @@ module.exports = {
       } else {
         this.rootElement = this.$parent.$el;
       }
-    },
-    getSpeechOptions() {
-      // TODO: Find a better way to access this piece of global state!
-      const appComponent = this.$root.$children[0].$children[0];
-      console.log(appComponent);
-      const state = appComponent.app_state;
-      return {
-        autoread: state.speech_autoread ?? false,
-        pitch: state.speech_pitch ?? 1,
-        rate: state.speech_rate ?? 1
-      };
     },
     // Taken from https://www.geeksforgeeks.org/how-to-check-if-an-element-is-visible-in-dom/
     // TODO: Is there a better way to check?
@@ -218,8 +244,7 @@ module.exports = {
       // This gives a nice pause between paragraphs
       this.speaking = true;
       const items = this.getSpeechItems();
-      const options = this.getSpeechOptions();
-      const utterances = items.map(item => this.makeUtterance(item, options));
+      const utterances = items.map(item => this.makeUtterance(item));
       console.log("Made utterances");
 
       // const lastUtterance = utterances[utterances.length - 1];
@@ -234,7 +259,19 @@ module.exports = {
         console.log(utterance.text);
         synth.speak(utterance);
       });
+    },
+
+    triggerAutospeakWithDelay(flag, delay=100) {
+      if (flag) {
+        setTimeout(() => {
+          this.triggerAutospeak();
+        }, delay);
+      } else if (this.speaking) {
+        window.speechSynthesis.cancel();
+        this.speaking = false;
+      }
     }
+
   },
 
   watch: {
@@ -242,22 +279,11 @@ module.exports = {
     // didn't seem to be enough - the DOM changes hadn't finished propagating yet.
     // But this does the trick, and I don't notice it at all
     autospeakOnChange(_item) {
-      setTimeout(() => {{
-        this.triggerAutospeak();
-      }}, 100);
+      this.triggerAutospeakWithDelay(this.speechSettings.autoread);
     },
 
     speakFlag(flag) {
-      if (flag) {
-        setTimeout(() => {{
-          this.triggerAutospeak();
-        }}, 100);
-      } else {
-        if (this.speaking) {
-          window.speechSynthesis.cancel();
-          this.speaking = false;
-        }
-      }
+      this.triggerAutospeakWithDelay(flag);
     }
   }
 }
