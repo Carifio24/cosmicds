@@ -5,6 +5,7 @@ from glue.viewers.histogram.state import HistogramLayerState, HistogramViewerSta
 class DotPlotViewerState(HistogramViewerState):
 
     viewer_height = CallbackProperty(400) # in pixels
+    viewer_width = CallbackProperty(600) # in pixels
 
     def __init__(self, **kwargs):
         super(DotPlotViewerState, self).__init__(**kwargs)
