@@ -141,7 +141,8 @@ module.exports = {
       default: "next"
     },
     canAdvance: {
-      type: Function
+      type: [Boolean, Function],
+      default: true
     },
     state: {
       type: Object
@@ -149,7 +150,10 @@ module.exports = {
   },
   computed: {
     advance() {
-      return !this.canAdvance || this.canAdvance(this.state);
+      if (typeof this.canAdvance === 'function') {
+        return this.canAdvance(this.state);
+      }
+      return this.canAdvance;
     },
     header() {
       if (this.headerText instanceof Function) {
