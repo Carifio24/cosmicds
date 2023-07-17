@@ -1,8 +1,10 @@
+from math import ceil, floor
+
 from ipyvuetify import VuetifyTemplate
-from numpy import arange, array, percentile
+from numpy import argsort, array
 from traitlets import Int, List, Unicode, observe
 
-from glue.core.subset import RangeSubsetState
+from glue.core.subset import ElementSubsetState
 
 from ...utils import load_template
 
@@ -42,8 +44,8 @@ class PercentageSelector(VuetifyTemplate):
             return self._bins
         return [getattr(viewer.state, "bins", None) for viewer in self.viewers]
 
-    def percentile(self, values, percent):
-        indices = arange(len(values))
+    def percentile_index(self, size, percent, method=round):
+        return min(method(size * percent / 100), size - 1)
 
     def _update_subsets(self, states):
         if not self.subsets:
@@ -98,15 +100,25 @@ class PercentageSelector(VuetifyTemplate):
 
         states = []
         for index, (viewer, bins) in enumerate(zip(self.viewers, self.bins)):
-            print("==========")
             component_id = viewer.state.x_att
             data = self.glue_data[index][component_id]
-            print(data)
             layer = self.layers[index]
             layer.state.color = self._deselected_color
-            true_bottom = percentile(data, bottom_percent, method="nearest")
-            true_top = percentile(data, top_percent, method="nearest")
-            state = RangeSubsetState(true_bottom, true_top, component_id)
+            bottom_index = self.percentile_index(data.size, bottom_percent, method=ceil)
+            top_index = self.percentile_index(data.size, top_percent, method=floor)
+            sorted_indices = argsort(data)
+            true_bottom = data[sorted_indices[bottom_index]]
+            true_top = data[sorted_indices[top_index]]
+
+            # Ideally we could use something like a RangeSubsetState
+            # but this can be problematic for our case when there are a small number
+            # of data points and low resolution, since then repeated values will
+            # have a very noticeable bad effect on the size that we're choosing
+            # If in the future we have a situation where we want to do this with more fluid
+            # data, we'll need to list to an update message or something to recalculate the
+            # indices here
+            indices = [si for i, si in enumerate(sorted_indices) if i >= bottom_index and i <= top_index]
+            state = ElementSubsetState(indices=indices)
             states.append(state)
             if self.resolution is not None:
                 rounded_bottom = round(true_bottom, self.resolution)
@@ -115,20 +127,15 @@ class PercentageSelector(VuetifyTemplate):
                 rounded_bottom = true_bottom
                 rounded_top = true_top
 
-            print(bins)
             if bins is not None:
                 resolution = 10 ** (-self.resolution)
                 bins_rounded_bottom = self._bin_bounds(rounded_bottom, bins)
-                print(true_bottom, rounded_bottom)
-                print(bins_rounded_bottom)
                 if true_bottom < bins_rounded_bottom[0]:
                     rounded_bottom -= resolution
                 elif true_bottom > bins_rounded_bottom[1]:
                     rounded_bottom += resolution 
 
                 bins_rounded_top = self._bin_bounds(rounded_top, bins)
-                print(true_top, rounded_top)
-                print(bins_rounded_top)
                 if true_top < bins_rounded_top[0]:
                     rounded_top -= resolution
                 elif true_top > bins_rounded_top[1]:
