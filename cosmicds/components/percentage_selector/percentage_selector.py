@@ -29,11 +29,18 @@ class PercentageSelector(VuetifyTemplate):
         self.resolution = kwargs.get("resolution", None)  # Number of decimal places for reporting bounds
         if "options" in kwargs:
             self.options = kwargs["options"]
+        self._bins = kwargs.get("bins", None)
         self.subset_labels = kwargs.get("subset_labels", [])
         self.subset_group = kwargs.get("subset_group", False)
         self.subsets = []
         if "units" in kwargs:
             self.units = kwargs["units"]
+            
+    @property
+    def bins(self):
+        if self._bins is not None:
+            return self._bins
+        return [getattr(viewer.state, "bins", None) for viewer in self.viewers]
 
     def _update_subsets(self, states):
         if not self.subsets:
@@ -59,6 +66,11 @@ class PercentageSelector(VuetifyTemplate):
     def layers(self):
         return [viewer.layer_artist_for_data(data) for (data, viewer) in zip(self.glue_data, self.viewers)]
 
+    @staticmethod
+    def _bin_bounds(value, bins):
+        index = next((idx for idx, x in enumerate(bins) if x >= value), 0)
+        return bins[index - 1], bins[index]
+
     @observe('selected')
     def _update(self, change):
         if change["old"] is None:
@@ -82,21 +94,38 @@ class PercentageSelector(VuetifyTemplate):
         top_percent = 50 + around_median
 
         states = []
-        for (index, viewer) in enumerate(self.viewers):
+        for index, (viewer, bins) in enumerate(zip(self.viewers, self.bins)):
             component_id = viewer.state.x_att
             data = self.glue_data[index][component_id]
             layer = self.layers[index]
             layer.state.color = self._deselected_color
-            bottom = percentile(data, bottom_percent, method="nearest")
-            top = percentile(data, top_percent, method="nearest")
-            state = RangeSubsetState(bottom, top, component_id)
+            true_bottom = percentile(data, bottom_percent, method="nearest")
+            true_top = percentile(data, top_percent, method="nearest")
+            state = RangeSubsetState(true_bottom, true_top, component_id)
             states.append(state)
             if self.resolution is not None:
-                bottom = round(bottom, self.resolution)
-                top = round(top, self.resolution)
+                rounded_bottom = round(true_bottom, self.resolution)
+                rounded_top = round(true_top, self.resolution)
+            else:
+                rounded_bottom = true_bottom
+                rounded_top = true_top
 
-            bottom_str = "{:g}".format(bottom)
-            top_str = "{:g}".format(top)
+                if bins is not None:
+                    resolution = 10 ** (-self.resolution)
+                    bins_rounded_bottom = self._bin_bounds(rounded_bottom, bins)
+                    if true_bottom < bins_rounded_bottom[0]:
+                        rounded_bottom -= resolution
+                    elif true_bottom > bins_rounded_bottom[1]:
+                        rounded_bottom += resolution 
+
+                    bins_rounded_top = self._bin_bounds(rounded_top, bins)
+                    if true_top < bins_rounded_top[0]:
+                        rounded_top -= resolution
+                    elif true_top > bins_rounded_top[1]:
+                        rounded_top += resolution
+
+            bottom_str = "{:g}".format(rounded_bottom)
+            top_str = "{:g}".format(rounded_top)
             if self.units and self.units[index]:
                 unit_str = f" {self.units[index]}"
             else:
