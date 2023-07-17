@@ -1,5 +1,5 @@
 from ipyvuetify import VuetifyTemplate
-from numpy import array, percentile
+from numpy import arange, array, percentile
 from traitlets import Int, List, Unicode, observe
 
 from glue.core.subset import RangeSubsetState
@@ -41,6 +41,9 @@ class PercentageSelector(VuetifyTemplate):
         if self._bins is not None:
             return self._bins
         return [getattr(viewer.state, "bins", None) for viewer in self.viewers]
+
+    def percentile(self, values, percent):
+        indices = arange(len(values))
 
     def _update_subsets(self, states):
         if not self.subsets:
@@ -95,8 +98,10 @@ class PercentageSelector(VuetifyTemplate):
 
         states = []
         for index, (viewer, bins) in enumerate(zip(self.viewers, self.bins)):
+            print("==========")
             component_id = viewer.state.x_att
             data = self.glue_data[index][component_id]
+            print(data)
             layer = self.layers[index]
             layer.state.color = self._deselected_color
             true_bottom = percentile(data, bottom_percent, method="nearest")
@@ -110,19 +115,24 @@ class PercentageSelector(VuetifyTemplate):
                 rounded_bottom = true_bottom
                 rounded_top = true_top
 
-                if bins is not None:
-                    resolution = 10 ** (-self.resolution)
-                    bins_rounded_bottom = self._bin_bounds(rounded_bottom, bins)
-                    if true_bottom < bins_rounded_bottom[0]:
-                        rounded_bottom -= resolution
-                    elif true_bottom > bins_rounded_bottom[1]:
-                        rounded_bottom += resolution 
+            print(bins)
+            if bins is not None:
+                resolution = 10 ** (-self.resolution)
+                bins_rounded_bottom = self._bin_bounds(rounded_bottom, bins)
+                print(true_bottom, rounded_bottom)
+                print(bins_rounded_bottom)
+                if true_bottom < bins_rounded_bottom[0]:
+                    rounded_bottom -= resolution
+                elif true_bottom > bins_rounded_bottom[1]:
+                    rounded_bottom += resolution 
 
-                    bins_rounded_top = self._bin_bounds(rounded_top, bins)
-                    if true_top < bins_rounded_top[0]:
-                        rounded_top -= resolution
-                    elif true_top > bins_rounded_top[1]:
-                        rounded_top += resolution
+                bins_rounded_top = self._bin_bounds(rounded_top, bins)
+                print(true_top, rounded_top)
+                print(bins_rounded_top)
+                if true_top < bins_rounded_top[0]:
+                    rounded_top -= resolution
+                elif true_top > bins_rounded_top[1]:
+                    rounded_top += resolution
 
             bottom_str = "{:g}".format(rounded_bottom)
             top_str = "{:g}".format(rounded_top)
