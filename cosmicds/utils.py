@@ -1,12 +1,10 @@
 import json
 import os
 from math import log10
+from requests import Session
 
 from astropy.modeling import models, fitting
 from bqplot.marks import Lines
-from bqplot.scales import LinearScale
-from glue.viewers.common.viewer import LayerArtist
-from glue_jupyter.bqplot.common import BqplotBaseView
 from glue_jupyter.bqplot.histogram import BqplotHistogramLayerArtist
 from glue_jupyter.bqplot.scatter import BqplotScatterLayerArtist
 from glue.core.state_objects import State
@@ -309,3 +307,8 @@ def frexp10(x, normed=False):
     exp = int(log10(x)) + int(normed)
     mantissa = x / (10 ** exp)
     return mantissa, exp
+
+def request_session():
+    session = Session()
+    session.headers.update({"Authorization": os.getenv("CDS_API_KEY")})
+    return session
