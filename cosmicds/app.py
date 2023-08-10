@@ -10,7 +10,7 @@ from glue_jupyter.app import JupyterApplication
 from glue_jupyter.state_traitlets_helpers import GlueState
 from ipyvuetify import VuetifyTemplate
 from ipywidgets import widget_serialization
-from traitlets import Dict, Bool, Int
+from traitlets import Dict, Bool, Int, List
 
 from .events import WriteToDatabaseMessage
 from .registries import story_registry

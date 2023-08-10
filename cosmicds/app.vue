@@ -364,30 +364,43 @@ export default {
     // so we need to account for that in order to get MathJax
     // to render their formulae properly
     const mathJaxOpeningDelimiters = [ "$$", "\\(", "\\[" ];
-    const containsMathJax = node => mathJaxOpeningDelimiters.some(delim => node.innerHTML.includes(delim));
     const elementToScan = node => node.nodeType === Node.ELEMENT_NODE;
+    const containsMathJax = node => mathJaxOpeningDelimiters.some(delim => node.innerHTML.includes(delim));
+    const elementWithMathJax = node => elementToScan(node) && containsMathJax(node);
+    const nodesContainingMathJax = node => {
+      const children = node.childNodes;
+      if (children.length == 0) {
+        return elementWithMathJax(node) ? [node] : [];
+      }
+      let result = [];
+      for (const child of children) {
+        if (elementWithMathJax(node)) {
+          result = result.concat(nodesContainingMathJax(child));
+        }
+      }
+      return result;
+    };
+    this.mathJaxElements = [];
     const mathJaxCallback = function(mutationList, _observer) {
       mutationList.forEach(mutation => {
         if (mutation.type === 'childList') {
 
-          const needTypesetting = [];
+          let needTypesetting = [];
           mutation.addedNodes.forEach(node => {
-            if (elementToScan(node) && containsMathJax(node)) {
-              needTypesetting.push(node);
-            }
+            needTypesetting = needTypesetting.concat(nodesContainingMathJax(node));
           });
           if (needTypesetting.length > 0) {
+            app.mathJaxElements = app.mathJaxElements.concat(needTypesetting);
             MathJax.typesetPromise(needTypesetting);
           }
 
-          const toClear = [];
+          let toClear = [];
           mutation.removedNodes.forEach(node => {
-            if (elementToScan(node) && containsMathJax(node)) {
-              toClear.push(node);
-            }
-          })
+            toClear = toClear.concat(nodesContainingMathJax(node));
+          });
           if (toClear.length > 0) {
             MathJax.typesetClear(toClear);
+            app.mathJaxElements = app.mathJaxElements.filter(el => !toClear.includes(el));
           }
         }
       });
@@ -395,6 +408,25 @@ export default {
     const observer = new MutationObserver(mathJaxCallback);
     const options = { childList: true, subtree: true };
     observer.observe(this.$el, options);
+
+    const mjaxResizeCb = (_entries) => {
+      const toReset = [];
+      app.mathJaxElements.forEach(element => {
+        console.log(element);
+        console.log(element.parentNode);
+        const w = element.offsetWidth;
+        const W = element.parentNode.offsetWidth - 40;
+        if (w > W) {
+          element.style.fontSize = (95 * W / w) + "%";
+          toReset.push(element);
+        }
+      });
+      console.log(toReset);
+      MathJax.typesetClear(toReset);
+      MathJax.typeset(toReset);
+    };
+    const mjaxResizeObserver = new ResizeObserver(mjaxResizeCb);
+    mjaxResizeObserver.observe(document.body);
 
     // Make dialogs draggable
     // This is a modified version of the code from https://github.com/vuetifyjs/vuetify/issues/4058#issuecomment-450636420
