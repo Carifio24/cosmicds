@@ -1,7 +1,8 @@
 from collections import Counter
+from functools import partial
 import json
 import os
-from math import ceil, floor, log10
+from math import log10
 from requests import Session
 
 from astropy.modeling import models, fitting
@@ -358,4 +359,11 @@ def request_session():
     """
     session = Session()
     session.headers.update({"Authorization": os.getenv("CDS_API_KEY")})
+    
+    # The request session doesn't have a built-in way to set a default timeout
+    # which is a bit disappointing.
+    # To work around this, I've gone with the method-shimming approach
+    # suggested at https://stackoverflow.com/a/59317604
+    # As noted there, we can still send a request with a different timeout value
+    session.request = partial(session.request, timeout=20)
     return session
