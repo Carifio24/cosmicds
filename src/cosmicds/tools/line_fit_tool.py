@@ -247,7 +247,6 @@ class LineFitTool(Tool, HubListener, HasTraits):
         else:
             self._fit_to_layer(state)
 
-
     def _fit_to_layer(self, state, add_marks=True):
         try:
             line, slope = self._create_fit_line(state)
@@ -260,8 +259,6 @@ class LineFitTool(Tool, HubListener, HasTraits):
             self.slopes[data] = slope
         except (IncompatibleAttribute, LinAlgError, SystemError) as e:
             pass
-
-        
 
     def _fit_to_layers(self):
         self._clear_lines()
