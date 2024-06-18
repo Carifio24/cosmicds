@@ -1,5 +1,6 @@
 from numpy import isnan
 from numpy.linalg import LinAlgError
+from plotly.graph_objects import Scatter
 from solara import Reactive
 
 from cosmicds.utils import fit_line, line_mark
@@ -13,16 +14,26 @@ class LineFitHandler:
         self.active = Reactive(False)
         self.figure = figure
         self._show_labels = kwargs.get("show_labels", True)
+        self._create_lines()
 
     def activate(self):
         if self.active.value:
-            self._clear_lines()
+            self._hide_lines()
         else:
             self._fit_to_traces()
         self.active.set(not self.active.value)
         print("end of activate")
         print(self.figure.data)
         print(id(self.figure))
+
+    def _create_lines(self):
+        self.scatters = [trace for trace in self.figure.data if isinstance(trace, Scatter)]
+        for scatter in self.scatters:
+            color = scatter.marker.color or "#000000"
+            line = line_mark(0, 0, 0, 0, color)
+            line.visible = False
+            mark = self.figure.add_trace(line).data[-1]
+            self.lines.append(mark)
         
     # The label displayed for each line
 
@@ -55,7 +66,7 @@ class LineFitHandler:
             self._show_labels = show
             self._refresh_if_active()
 
-    def _create_fit_line(self, trace):
+    def _line_for_scatter(self, trace):
 
         # Do the fit
         fit = self._fit_line(trace)
@@ -75,26 +86,26 @@ class LineFitHandler:
         line = line_mark(xrange[0], y, xrange[1], y, color, label)
         return line, slope
 
-    def _fit_to_trace(self, trace, add_marks=True):
+    def _fit_to_scatter(self, scatter, mark):
         try:
-            line, slope = self._create_fit_line(trace)
+            line, slope = self._line_for_scatter(scatter)
             if line is None:
                 return
-            if add_marks:
-                line = self.figure.add_trace(line).data[-1]
-            self.lines.append(line)
+            json = line.to_plotly_json()
+            json["visible"] = True
+            mark.update(**json)
             self.slopes.append(slope)
         except (LinAlgError, SystemError) as e:
             print(e)
             pass
 
     def _fit_to_traces(self):
-        self._clear_lines()
-        for trace in self.figure.data:
-            self._fit_to_trace(trace, add_marks=True)
+        self._hide_lines()
+        for trace, line in zip(self.figure.data, self.lines):
+            self._fit_to_scatter(trace, line)
 
-    def _clear_lines(self):
-        self.figure.data = [mark for mark in self.figure.data if mark not in self.lines]
-        self.lines = []
+    def _hide_lines(self):
+        for line in self.lines:
+            line.update(visible=False)
         self.slopes = []
 
