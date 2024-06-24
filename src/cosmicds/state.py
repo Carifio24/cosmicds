@@ -8,7 +8,7 @@ import httpx
 from solara_enterprise import auth
 
 from glue_jupyter.app import JupyterApplication
-from glue.core.data_collection import DataCollection
+from glue.core import Data, DataCollection
 from glue.core.session import Session
 from .utils import request_session, API_URL, debounce
 
@@ -161,6 +161,12 @@ class GlobalState(BaseState):
         return username
 
     def _setup_user(self, story_name, class_code):
+        # TODO: This is just for testing!
+        self.student.id.set(0)
+        self.classroom.class_.set(0)
+        self.classroom.size.set(15)
+        return
+
         if not auth.user.value:
             return
 
@@ -209,6 +215,16 @@ class GlobalState(BaseState):
         self.student.id.set(0)
         self.classroom.class_.set({})
         self.classroom.size.set(0)
+
+    def add_or_update_data(self, data: Data):
+        if data.label in self.data_collection:
+            existing = self.data_collection[data.label]
+            existing.update_values_from_data(data)
+            return existing
+        else:
+            self.data_collection.append(data)
+            return data
+
 
 
 GLOBAL_STATE = GlobalState()
