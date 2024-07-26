@@ -83,6 +83,9 @@ class RepeatedTimer(object):
         self.is_running = False
         self.start()
 
+    def __del__(self):
+        self.stop()
+
     def _run(self):
         self.is_running = False
         loop = IOLoop()
