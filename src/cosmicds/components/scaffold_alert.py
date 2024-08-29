@@ -1,3 +1,4 @@
+from cosmicds.components.speech_synthesizer.speech_synthesizer import SpeechSynthesizer
 from cosmicds.state import Speech
 import solara
 import inspect
@@ -18,7 +19,6 @@ def ScaffoldAlert(
     fr_listener=None,
     state_view: dict = None,
     event_force_transition: Callable = lambda *args: None,
-    speech: Optional[Speech] = None,
     **kwargs
 ):
     """
@@ -123,7 +123,6 @@ def ScaffoldAlert(
 
     _ScaffoldAlert = solara.component_vue(vue_path)(_ScaffoldAlert)
 
-    speech_dict = speech.model_dump() if speech is not None else None
     return _ScaffoldAlert(
         event_back_callback=event_back_callback,
         event_next_callback=event_next_callback,
@@ -135,6 +134,5 @@ def ScaffoldAlert(
         frListener=fr_listener,
         state_view=state_view,
         event_force_transition=event_force_transition,
-        speech=speech_dict,
         **kwargs
     )

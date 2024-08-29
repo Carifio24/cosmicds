@@ -40,17 +40,13 @@
           v-else
           class="mx-2 shrink"
         >
-          <speech-synthesizer
-            :options="speech"
-          />
+          <jupyter-widget :widget="speech" />
         </v-col>
         <v-col
           v-if="allowBack"
           class="mx-2 shrink"
         >
-          <speech-synthesizer
-            :options="speech"
-          />
+          <jupyter-widget :widget="speech" />
         </v-col>
         <v-col
           v-else
@@ -134,8 +130,6 @@
 <script>
 module.exports = {
   mounted() {
-
-    console.log(this.speech);
 
     if (this.scrollOnMount) {
       this.$el.scrollIntoView({

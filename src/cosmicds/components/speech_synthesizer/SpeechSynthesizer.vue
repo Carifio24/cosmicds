@@ -231,6 +231,8 @@ module.exports = {
       if (this.rootElement === null) {
         this.findRootElement();
       }
+      console.log(selectors);
+      console.log(this.selectors);
       const selectedElements = this.rootElement.querySelectorAll(selectors.join(","));
       let elements = [].concat(...selectedElements).filter(this.isElementVisible);
       if (this.elementFilter) {

@@ -93,8 +93,6 @@ def BaseLayout(
     # Ref(GLOBAL_STATE.fields.classroom.class_info).set({"id": 0})
     # Ref(GLOBAL_STATE.fields.classroom.size).set(0)
     
-    speech = Ref(GLOBAL_STATE.fields.speech)
-
     @solara.lab.computed
     def display_info():
         info = (auth.user.value or {}).get("userinfo")
@@ -107,6 +105,11 @@ def BaseLayout(
             "email": "ERROR: No user",
             "id": "",
         }
+
+    def initial_speech_settings() -> dict:
+        return GLOBAL_STATE.value.speech.model_dump()
+
+    initial_speech = solara.use_memo(initial_speech_settings, dependencies=[])
 
     with solara.Column(style={"height": "100vh"}) as main:
         with rv.AppBar(elevate_on_scroll=False, app=True, flat=True, class_="cosmicds-appbar"):
@@ -179,14 +182,11 @@ def BaseLayout(
                     }
                 ]
             ):
-                initial_settings = GLOBAL_STATE.value.speech.model_dump()
                 def update_speech_property(prop, value):
-                    settings = speech.value.model_copy()
-                    setattr(settings, prop, value)
-                    speech.set(settings)
+                    setattr(GLOBAL_STATE.value.speech, prop, value)
                 SpeechSettings(
-                    initial_state=initial_settings,
-                    event_autoread_changed=lambda read: update_speech_property("read", read),
+                    initial_state=initial_speech,
+                    event_autoread_changed=lambda read: update_speech_property("autoread", read),
                     event_pitch_changed=lambda pitch: update_speech_property("pitch", pitch),
                     event_rate_changed=lambda rate: update_speech_property("rate", rate),
                     event_voice_changed=lambda voice: update_speech_property("voice", voice),
