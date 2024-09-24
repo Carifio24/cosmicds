@@ -17,12 +17,6 @@ export default {
           // (i.e. in a MathJax intersection observer)
           // we need this to correctly initialize the value
           const tag = this.getAttribute("tag");
-          // if (tag) {
-          //   const application = CustomInput.app;
-          //   if (tag in application.story_state.inputs) {
-          //     this.input.value = application.story_state.inputs[tag];
-          //   }
-          // }
         }
 
         handleChangeEvent(event) {
@@ -44,10 +38,6 @@ export default {
           if (!tag) {
             return;
           }
-          // const application = CustomInput.app;
-          // application.story_state.inputs[tag] = text;
-          // AFAICT, we need to call this here to update the state Python-side
-          // app.update_state();
         }
       }
 
