@@ -223,20 +223,16 @@ def BaseLayout(
 
             rv.Divider()
 
-            with rv.List(nav=True):
-                with rv.ListItemGroup(
-                    v_model=selected_link.value,
-                ):
-                    for i, route in enumerate(routes_current_level):
-                        with solara.Link(solara.resolve_path(route)):
-                            with rv.ListItem():
-                                with rv.ListItemIcon():
-                                    rv.Icon(children="mdi-view-dashboard")
-
-                                with rv.ListItemContent():
-                                    rv.ListItemTitle(
-                                        children=f"{route.label if route.path != '/' else 'Introduction'}"
-                                    )
+            with rv.Stepper(
+                v_model=selected_link.value,
+            ):
+                for i, route in enumerate(routes_current_level):
+                    with solara.Link(solara.resolve_path(route)):
+                        rv.StepperStep(step=i,
+                                       editable=True,
+                                       edit_icon="$complete",
+                                       children=[f"{route.label if route.path != '/' else 'Introduction'}"]
+                        )
 
         with rv.Content(class_="solara-content-main", style_="height: 100%"):
             with rv.Container(
