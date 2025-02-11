@@ -3,7 +3,7 @@ from glue_plotly.viewers.common.tools import PlotlyHomeTool
 
 
 @register_tool
-class PlotlyVisibleOnlyHomeTool(PlotlyHomeTool):
+class VisibleOnlyHomeTool(PlotlyHomeTool):
 
     tool_id = 'cosmicds:visible_only_home'
 
