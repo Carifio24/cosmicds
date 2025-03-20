@@ -63,6 +63,20 @@ def BaseLayout(
 
     solara.use_memo(_component_setup)
 
+    def _search_params() -> dict:
+        router = solara.use_router()
+        search = router.search
+        if search is None:
+            return {}
+
+        params = {}
+        items = search.split("&")
+        for item in items:
+            key, value = item.split("=")
+            params[key] = value
+
+        return params
+
     # Attempt to load saved setup state
     def _load_from_cache():
         cache = solara.cache.storage.get(f"cds-login-options-{get_session_id()}")
