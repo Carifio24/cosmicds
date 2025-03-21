@@ -574,3 +574,7 @@ def parse_search_params(router: Router) -> dict:
 
 def get_cache(cache_id: str):
     return solara.cache.storage.get(cache_id)
+
+
+def set_cache(cache_id: str, data: dict):
+    solara.cache.storage[cache_id] = data

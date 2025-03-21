@@ -19,7 +19,7 @@ from typing import List, Tuple
 from .state import GLOBAL_STATE, BaseLocalState, Speech
 from .remote import BASE_API
 from cosmicds import load_custom_vue_components
-from cosmicds.utils import get_cache, get_session_id, parse_search_params
+from cosmicds.utils import get_cache, get_session_id, parse_search_params, set_cache
 from cosmicds.components.login import Login
 from cosmicds.components.speech_settings import SpeechSettings
 from cosmicds.logger import setup_logger
@@ -39,6 +39,7 @@ def BaseLayout(
     story_title: str = "Cosmic Data Story",
     force_demo: bool = False,
 ):
+    router: Router = solara.use_router()
     route_current, routes_current_level = solara.use_route()
     route_index = routes_current_level.index(route_current)
 
@@ -66,22 +67,26 @@ def BaseLayout(
     solara.use_memo(_component_setup)
 
     def _setup_from_browser_state():
-        router: Router = solara.use_router()
+        logger.info("SETUP FROM BROWSER STATE")
         cache_id = f"cds-login-options-{get_session_id()}"
         cache = get_cache(cache_id)
         params = parse_search_params(router)
+        logger.info(params)
         for_cache_load = [
             ("update_db", update_db),
             ("debug_mode", debug_mode),
         ]
 
         if (code := params.get("class_code", None)):
-            class_code.set(code)
             if cache is not None:
                 cache["class_code"] = code
+            else:
+                set_cache(cache_id, {"class_code": code})
+            class_code.set(code)
         else:
             for_cache_load.append(("class_code", class_code))
 
+        logger.info(get_cache(cache_id))
         if cache is not None:
             for key, state in for_cache_load:
                 if key in cache:
