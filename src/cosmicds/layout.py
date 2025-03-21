@@ -8,16 +8,18 @@ import solara
 from solara.alias import rv
 from ipyvue import Html
 from solara.lab import theme
+from solara.routing import Router
 from solara.server import settings
 from solara.toestand import Ref
 from solara_enterprise import auth
 from solara import Reactive
+from typing import List, Tuple
 
 
 from .state import GLOBAL_STATE, BaseLocalState, Speech
 from .remote import BASE_API
 from cosmicds import load_custom_vue_components
-from cosmicds.utils import get_session_id
+from cosmicds.utils import get_cache, get_session_id, parse_search_params
 from cosmicds.components.login import Login
 from cosmicds.components.speech_settings import SpeechSettings
 from cosmicds.logger import setup_logger
@@ -63,34 +65,29 @@ def BaseLayout(
 
     solara.use_memo(_component_setup)
 
-    def _search_params() -> dict:
-        router = solara.use_router()
-        search = router.search
-        if search is None:
-            return {}
+    def _setup_from_browser_state():
+        router: Router = solara.use_router()
+        cache_id = f"cds-login-options-{get_session_id()}"
+        cache = get_cache(cache_id)
+        params = parse_search_params(router)
+        for_cache_load = [
+            ("update_db", update_db),
+            ("debug_mode", debug_mode),
+        ]
 
-        params = {}
-        items = search.split("&")
-        for item in items:
-            key, value = item.split("=")
-            params[key] = value
-
-        return params
-
-    # Attempt to load saved setup state
-    def _load_from_cache():
-        cache = solara.cache.storage.get(f"cds-login-options-{get_session_id()}")
+        if (code := params.get("class_code", None)):
+            class_code.set(code)
+            if cache is not None:
+                cache["class_code"] = code
+        else:
+            for_cache_load.append(("class_code", class_code))
 
         if cache is not None:
-            for key, state in [
-                ("class_code", class_code),
-                ("update_db", update_db),
-                ("debug_mode", debug_mode),
-            ]:
+            for key, state in for_cache_load:
                 if key in cache:
                     state.set(cache[key])
-
-    solara.use_memo(_load_from_cache)
+    
+    solara.use_memo(_setup_from_browser_state)
 
     if force_demo:
         logger.info("Loading app in demo mode.")
@@ -113,9 +110,9 @@ def BaseLayout(
 
     if bool(auth.user.value):
         if BASE_API.user_exists:
-            BASE_API.load_user_info(story_name, GLOBAL_STATE)
+            BASE_API.load_user_info(story_name, GLOBAL_STATE, class_code.value)
         elif bool(class_code.value):
-            BASE_API.create_new_user(story_name, class_code.value, GLOBAL_STATE)
+            BASE_API.create_new_user(story_name, GLOBAL_STATE, class_code.value)
         else:
             logger.error("User is authenticated, but does not exist.")
             solara.use_router().push(auth.get_logout_url())

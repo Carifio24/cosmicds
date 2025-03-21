@@ -3,6 +3,7 @@ import hashlib
 import os
 from requests import Session
 from functools import cached_property
+from typing import Optional
 
 from .state import GLOBAL_STATE, BaseLocalState, BaseState, GlobalState, Student
 from solara import Reactive
@@ -58,14 +59,19 @@ class BaseAPI:
         ).json()
         Ref(state.fields.classroom.size).set(size_json["size"])
 
-    def load_user_info(self, story_name: str, state: Reactive[GlobalState]):
+    def load_user_info(self, story_name: str, state: Reactive[GlobalState], class_code: Optional[str] = None):
         student_json = self.request_session.get(
             f"{self.API_URL}/student/{self.hashed_user}"
         ).json()["student"]
         sid = student_json["id"]
 
+        if class_code is None:
+            class_path = f"classes/{class_code}"
+        else:
+            class_path = f"class-for-student-story/{sid}/{story_name}"
+
         class_json = self.request_session.get(
-            f"{self.API_URL}/class-for-student-story/{sid}/{story_name}"
+            f"{self.API_URL}/{class_path}"
         ).json()
 
         Ref(state.fields.student.id).set(sid)
@@ -75,7 +81,7 @@ class BaseAPI:
         logger.info("Loaded user info for user `%s`.", state.value.student.id)
 
     def create_new_user(
-        self, story_name: str, class_code: str, state: Reactive[GlobalState]
+        self, story_name: str, state: Reactive[GlobalState], class_code: str
     ):
         r = self.request_session.get(f"{self.API_URL}/student/{self.hashed_user}")
         student = r.json()["student"]
