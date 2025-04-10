@@ -1,6 +1,6 @@
 import datetime
 import os
-from typing import Optional
+from typing import List, Optional, Tuple
 from warnings import filterwarnings
 
 import solara
@@ -8,6 +8,7 @@ from reacton import ipyvue
 from solara import Reactive
 from solara.alias import rv
 from solara.lab import theme
+from solara.routing import Router
 from solara.server import settings
 from solara.toestand import Ref
 from solara_enterprise import auth
@@ -17,7 +18,7 @@ from cosmicds.components.login import Login
 from cosmicds.components.speech_settings import SpeechSettings
 from cosmicds.components.tooltip_menu import TooltipMenu
 from cosmicds.logger import setup_logger
-from cosmicds.utils import get_session_id
+from cosmicds.utils import get_cache, get_session_id, parse_search_params, set_cache
 from .components.breakpoint_watcher.breakpoint_watcher import BreakpointWatcher
 from .components.theme_toggle import ThemeToggle
 from .remote import BASE_API
@@ -50,21 +51,37 @@ def BaseSetup(
 
     solara.use_memo(_component_setup, dependencies=[])
 
-    # Attempt to load saved setup state
-    def _load_from_cache():
-        logger.info(f"Loading from cache.")
-        cache = solara.cache.storage.get(f"cds-login-options-{get_session_id()}")
+    def _setup_from_browser_state():
+        logger.info("SETUP FROM BROWSER STATE")
+        cache_id = f"cds-login-options-{get_session_id()}"
+        cache = get_cache(cache_id)
+        logger.info(router.search)
+        params = parse_search_params(router)
+        logger.info(params)
+        for_cache_load = [
+            ("update_db", update_db),
+            ("debug_mode", debug_mode),
+        ]
 
+        if (code := params.get("class_code", None)):
+            if cache is not None:
+                cache["class_code"] = code
+            else:
+                set_cache(cache_id, {"class_code": code})
+            class_code.set(code)
+        else:
+            for_cache_load.append(("class_code", class_code))
+
+        logger.info(code)
+        logger.info(class_code.value)
+
+        logger.info(get_cache(cache_id))
         if cache is not None:
-            for key, state in [
-                ("class_code", class_code),
-                ("update_db", update_db),
-                ("debug_mode", debug_mode),
-            ]:
+            for key, state in for_cache_load:
                 if key in cache:
                     state.set(cache[key])
-
-    solara.use_memo(_load_from_cache, dependencies=[])
+    
+    solara.use_memo(_setup_from_browser_state)
     
     educator_mode = False
     if bool(auth.user.value):
@@ -114,9 +131,9 @@ def BaseSetup(
     def _get_user_info():
         if bool(auth.user.value):
             if BASE_API.user_exists:
-                BASE_API.load_user_info(story_name, GLOBAL_STATE)
+                BASE_API.load_user_info(story_name, GLOBAL_STATE, class_code.value)
             elif bool(class_code.value):
-                BASE_API.create_new_user(story_name, class_code.value, GLOBAL_STATE)
+                BASE_API.create_new_user(story_name, GLOBAL_STATE, class_code.value)
             else:
                 logger.error("User is authenticated, but does not exist.")
                 router.push(auth.get_logout_url())
@@ -262,6 +279,11 @@ def BaseLayout(
                 color="var(--success-dark)",
             )
 
+    class_data = Ref(GLOBAL_STATE.fields.classroom)
+    cls_html = rv.Html(
+        tag="h4",
+        children=f"Class ID: {class_data.value.class_info['id']}",
+    ) if class_data.value else None
     with rv.NavigationDrawer(
         v_model=drawer.value,
         on_v_model=drawer.set,
@@ -296,6 +318,7 @@ def BaseLayout(
                                                         tag="h4",
                                                         children=f"Student ID: {GLOBAL_STATE.value.student.id}",
                                                     ),
+                                                    cls_html
                                                 ],
                                             )
                                         ],

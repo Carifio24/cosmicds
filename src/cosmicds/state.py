@@ -29,7 +29,7 @@ if 'CDS_DEBUG_MODE' in os.environ:
 else:
     print("Debug mode disabled.")
 
-show_team_interface_init = False
+show_team_interface_init = True 
 # CDS_SHOW_TEAM_INTERFACE must exist, and have the value 'true' to enable team interface
 if 'CDS_SHOW_TEAM_INTERFACE' in os.environ:
     # check if it has a value and if it True
