@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from requests import adapters
 import random
+import solara
+from solara.routing import Router
 from types import NoneType
 from typing import Dict, Type, Union, get_args, get_origin
 
@@ -553,3 +555,26 @@ def show_layer_traces_in_legend(viewer: PlotlyBaseView, show: bool = False):
     for layer in viewer.layers:
         for trace in layer.traces():
             trace.update(showlegend=show)
+
+
+def parse_search_params(router: Router) -> dict:
+    params = {}
+    search = router.search
+
+    if search is None:
+        return params
+
+    items = search.split("&")
+    for item in items:
+        key, value = item.split("=")
+        params[key] = value
+
+    return params
+
+
+def get_cache(cache_id: str):
+    return solara.cache.storage.get(cache_id)
+
+
+def set_cache(cache_id: str, data: dict):
+    solara.cache.storage[cache_id] = data
