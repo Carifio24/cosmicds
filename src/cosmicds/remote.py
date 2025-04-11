@@ -74,16 +74,17 @@ class BaseAPI:
         ).json()["student"]
         sid = student_json["id"]
 
+        
+        class_json = {"class": None, "size": 0}
         if class_code:
-            class_path = f"classes/{class_code}"
-        else:
-            class_path = f"class-for-student-story/{sid}/{story_name}"
+            class_json = self.request_session.get(
+                f"{self.API_URL}/classes/{class_code}"
+            ).json()
 
-        logger.info(class_path)
-
-        class_json = self.request_session.get(
-            f"{self.API_URL}/{class_path}"
-        ).json()
+        if class_json["class"] is None:
+            class_json = self.request_session.get(
+                f"{self.API_URL}/class-for-student-story/{sid}/{story_name}"
+            ).json()
 
         Ref(state.fields.student.id).set(sid)
         Ref(state.fields.classroom.class_info).set(class_json["class"])

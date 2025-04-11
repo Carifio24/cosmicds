@@ -21,7 +21,7 @@ from cosmicds.logger import setup_logger
 from cosmicds.utils import get_cache, get_session_id, parse_search_params, set_cache
 from .components.breakpoint_watcher.breakpoint_watcher import BreakpointWatcher
 from .components.theme_toggle import ThemeToggle
-from .remote import BASE_API
+from .remote import BASE_API, BaseAPI
 from .state import GLOBAL_STATE, BaseLocalState
 
 filterwarnings(action="ignore", category=UserWarning)
@@ -33,6 +33,8 @@ logger = setup_logger("LAYOUT")
 
 
 def BaseSetup(
+    api: BaseAPI,
+    local_state: Reactive[BaseLocalState],
     force_demo: bool = False,
     story_name: str = "",
     story_title: str = "Cosmic Data Story",
@@ -81,11 +83,9 @@ def BaseSetup(
                 if key in cache:
                     state.set(cache[key])
     
-    solara.use_memo(_setup_from_browser_state)
-    
     educator_mode = False
     if bool(auth.user.value):
-        if BASE_API.is_educator:
+        if api.is_educator:
             force_demo = True
             educator_mode = True
             Ref(GLOBAL_STATE.fields.update_db).set(False)
@@ -129,11 +129,14 @@ def BaseSetup(
         class_code.set("215")
 
     def _get_user_info():
+        logger.info("HERE")
+        logger.info(class_code.value)
         if bool(auth.user.value):
-            if BASE_API.user_exists:
-                BASE_API.load_user_info(story_name, GLOBAL_STATE, class_code.value)
+            if api.user_exists:
+                api.load_user_info(story_name, GLOBAL_STATE, class_code.value)
+                api.put_story_state(GLOBAL_STATE, local_state)
             elif bool(class_code.value):
-                BASE_API.create_new_user(story_name, GLOBAL_STATE, class_code.value)
+                api.create_new_user(story_name, GLOBAL_STATE, class_code.value)
             else:
                 logger.error("User is authenticated, but does not exist.")
                 router.push(auth.get_logout_url())
@@ -141,12 +144,17 @@ def BaseSetup(
                 location.pathname = auth.get_logout_url()
         else:
             logger.info("User has not authenticated.")
-            BASE_API.clear_user(GLOBAL_STATE)
+            api.clear_user(GLOBAL_STATE)
 
             login_dialog = Login(active, class_code, update_db, debug_mode)
             active.set(True)
 
-    solara.use_memo(_get_user_info, dependencies=[auth.user.value])
+    def _initial_setup():
+        _setup_from_browser_state()
+        _get_user_info()
+        logger.info(GLOBAL_STATE.value.classroom)
+
+    solara.use_memo(_initial_setup, dependencies=[auth.user.value])
 
 
 def BaseLayout(
@@ -280,10 +288,12 @@ def BaseLayout(
             )
 
     class_data = Ref(GLOBAL_STATE.fields.classroom)
+    logger.info("CLASS DATA")
+    logger.info(class_data.value)
     cls_html = rv.Html(
         tag="h4",
-        children=f"Class ID: {class_data.value.class_info['id']}",
-    ) if class_data.value else None
+        children=[str(class_data.value.class_info["id"])],
+    ) if class_data.value.class_info else ""
     with rv.NavigationDrawer(
         v_model=drawer.value,
         on_v_model=drawer.set,
