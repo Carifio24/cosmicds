@@ -54,12 +54,9 @@ def BaseSetup(
     solara.use_memo(_component_setup, dependencies=[])
 
     def _setup_from_browser_state():
-        logger.info("SETUP FROM BROWSER STATE")
         cache_id = f"cds-login-options-{get_session_id()}"
         cache = get_cache(cache_id)
-        logger.info(router.search)
         params = parse_search_params(router)
-        logger.info(params)
         for_cache_load = [
             ("update_db", update_db),
             ("debug_mode", debug_mode),
@@ -74,10 +71,6 @@ def BaseSetup(
         else:
             for_cache_load.append(("class_code", class_code))
 
-        logger.info(code)
-        logger.info(class_code.value)
-
-        logger.info(get_cache(cache_id))
         if cache is not None:
             for key, state in for_cache_load:
                 if key in cache:
@@ -129,8 +122,6 @@ def BaseSetup(
         class_code.set("215")
 
     def _get_user_info():
-        logger.info("HERE")
-        logger.info(class_code.value)
         if bool(auth.user.value):
             if api.user_exists:
                 api.load_user_info(story_name, GLOBAL_STATE, class_code.value)
@@ -152,7 +143,6 @@ def BaseSetup(
     def _initial_setup():
         _setup_from_browser_state()
         _get_user_info()
-        logger.info(GLOBAL_STATE.value.classroom)
 
     solara.use_memo(_initial_setup, dependencies=[auth.user.value])
 
@@ -287,13 +277,6 @@ def BaseLayout(
                 color="var(--success-dark)",
             )
 
-    class_data = Ref(GLOBAL_STATE.fields.classroom)
-    logger.info("CLASS DATA")
-    logger.info(class_data.value)
-    cls_html = rv.Html(
-        tag="h4",
-        children=[str(class_data.value.class_info["id"])],
-    ) if class_data.value.class_info else ""
     with rv.NavigationDrawer(
         v_model=drawer.value,
         on_v_model=drawer.set,
@@ -328,7 +311,6 @@ def BaseLayout(
                                                         tag="h4",
                                                         children=f"Student ID: {GLOBAL_STATE.value.student.id}",
                                                     ),
-                                                    cls_html
                                                 ],
                                             )
                                         ],
